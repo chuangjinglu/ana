@@ -80,44 +80,27 @@ jobs:
       - name: 读取并保存报告内容
         id: get-reports
         run: |
-          # 初始化变量来存储报告和错误信息
-          REPORTS=""
-          ERRORS=""
-
-          # 遍历所有生成的报告文件
-          for report_file in gocritic-report-*.txt; do
-            if [ -f "$report_file" ]; then
-              repo_name=$(basename "$report_file" .txt | sed 's/gocritic-report-//')
-              report_content=$(cat "$report_file" || echo "没有生成报告")
-              REPORTS="$REPORTS\n### $repo_name 报告:\n\`\`\`\n$report_content\n\`\`\`"
-            fi
-          done
-
-          # 遍历所有生成的错误文件
-          for error_file in gocritic-errors-*.txt; do
-            if [ -f "$error_file" ]; then
-              repo_name=$(basename "$error_file" .txt | sed 's/gocritic-errors-//')
-              error_content=$(cat "$error_file" || echo "没有错误")
-              ERRORS="$ERRORS\n### $repo_name 错误:\n\`\`\`\n$error_content\n\`\`\`"
-            fi
-          done
-
+          # 直接读取所有报告文件
+          REPORTS=$(cat gocritic-report-*.txt 2>/dev/null || echo "没有生成报告")
+          # 直接读取所有错误文件
+          ERRORS=$(cat gocritic-errors-*.txt 2>/dev/null || echo "没有错误")
+      
           # 将报告和错误设置为输出变量
           echo "reports<<EOF" >> $GITHUB_ENV
-          echo -e "$REPORTS" >> $GITHUB_ENV
+          echo -e "### 报告:\n\`\`\`\n$REPORTS\n\`\`\`" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-
+      
           echo "errors<<EOF" >> $GITHUB_ENV
-          echo -e "$ERRORS" >> $GITHUB_ENV
+          echo -e "### 错误:\n\`\`\`\n$ERRORS\n\`\`\`" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
         shell: bash
-
+      
       - name: 输出环境变量进行调试
         run: |
           echo "Reports: ${{ env.reports }}"
           echo "Errors: ${{ env.errors }}"
         shell: bash
-
+      
       - name: Create or update issue with analysis results
         uses: peter-evans/create-or-update-comment@v3
         with:
@@ -125,7 +108,7 @@ jobs:
           issue-number: 1
           body: |
             # Go-Critic 静态分析报告
-
+      
             以下是 go-critic 产生的错误：
-
+      
             ${{ env.errors }}
