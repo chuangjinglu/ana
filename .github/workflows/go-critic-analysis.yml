@@ -1,14 +1,13 @@
 name: Go Critic Analysis
+run-name: "run for ${{ inputs.repo_url }}"
 
 on:
   workflow_dispatch: # 手动触发
-  schedule:
-    - cron: '0 0 * * *' # 每天运行一次
-  inputs:
-    repo_url:
-      description: "the file repo to run"
-      default: "repo.txt"
-      required: true
+    inputs:
+      repo_url:
+        description: "the file repo to run"
+        default: "repo.txt"
+        required: true
 
 permissions:  # 不然无法把运行结果写在issue的评论里
   issues: write
