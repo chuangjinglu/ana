@@ -1,3 +1,10 @@
 https://github.com/getsops/sops
 https://github.com/emirpasic/gods
+https://github.com/ipfs/kubo
 https://github.com/jmoiron/sqlx
+https://github.com/charmbracelet/glow
+https://github.com/TheAlgorithms/Go
+https://github.com/kubernetes/kops
+https://github.com/ginuerzh/gost
+https://github.com/trufflesecurity/trufflehog
+https://github.com/wtfutil/wtf
