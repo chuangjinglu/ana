@@ -75,6 +75,9 @@ jobs:
           # 将所有 go-critic 报告合并到一个文件中
           cat gocritic-report-*.txt > ../gocritic-issues-summary.txt
           cat gocritic-errors-*.txt > ../gocritic-errors-summary.txt
+
+          cat ../gocritic-issues-summary.txt
+          cat ../gocritic-errors-summary.txt
         shell: bash
 
       - name: 读取并保存报告内容
