@@ -44,5 +44,5 @@ jobs:
           IFS=$'\n' # Set the Internal Field Separator to newline
           for url in $REPO_URLS; do
             echo "Submitting repository: $url"
-            gh workflow run ${{ inputs.workflow }} --ref main --field repo=$url
+            gh workflow run ${{ inputs.workflow }} --ref main --field repo_url=$url
           done
