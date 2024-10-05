@@ -1,0 +1,125 @@
+name: Go Critic Analysis
+
+on:
+  workflow_dispatch: # 手动触发
+  schedule:
+    - cron: '0 0 * * *' # 每天运行一次
+
+permissions:  # 不然无法把运行结果写在issue的评论里
+  issues: write
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Install go-critic
+        run: |
+          go install github.com/go-critic/go-critic/cmd/gocritic@latest
+        shell: bash
+
+      - name: Add Go binaries to PATH
+        run: |
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Debug environment
+        run: |
+          echo "Current shell: $SHELL"
+          echo "Current PATH: $PATH"
+          which mkdir
+        shell: bash
+
+      - name: Read repo.txt and analyze each repository
+        run: |
+          # 创建一个临时目录用于克隆仓库
+          mkdir repos
+          cd repos
+
+          # 循环处理 repo.txt 中的每个仓库
+          while IFS= read -r repo; do
+            echo "Processing $repo"
+            repo_name=$(basename -s .git "$repo")
+
+            # 克隆仓库
+            git clone "$repo" "$repo_name"
+            cd "$repo_name"
+
+            # 运行 go-critic 并捕获错误输出
+            #gocritic check  -disable sloppyTypeAssert,singleCaseSwitch,captLocal,ifElseChain,caseOrder,unslice,commentFormatting,assignOp,exitAfterDefer,elseif,wrapperFunc,unlambda,underef,badCall,dupSubExpr,sloppyLen,offBy1,defaultCaseOrder > ../../gocritic-report-$repo_name.txt 2> ../../gocritic-errors-$repo_name.txt || true
+
+            go vet  || true
+            gocritic check  > ../../gocritic-report-$repo_name.txt 2> ../../gocritic-errors-$repo_name.txt || true
+
+            # 返回 repos 目录
+            cd ..
+          done < ../repo.txt
+        shell: bash
+
+      - name: Collect analysis reports
+        run: |
+          # 将所有 go-critic 报告合并到一个文件中
+          cat gocritic-report-*.txt > ../gocritic-issues-summary.txt
+          cat gocritic-errors-*.txt > ../gocritic-errors-summary.txt
+        shell: bash
+
+      - name: 读取并保存报告内容
+        id: get-reports
+        run: |
+          # 初始化变量来存储报告和错误信息
+          REPORTS=""
+          ERRORS=""
+
+          # 遍历所有生成的报告文件
+          for report_file in gocritic-report-*.txt; do
+            if [ -f "$report_file" ]; then
+              repo_name=$(basename "$report_file" .txt | sed 's/gocritic-report-//')
+              report_content=$(cat "$report_file" || echo "没有生成报告")
+              REPORTS="$REPORTS\n### $repo_name 报告:\n\`\`\`\n$report_content\n\`\`\`"
+            fi
+          done
+
+          # 遍历所有生成的错误文件
+          for error_file in gocritic-errors-*.txt; do
+            if [ -f "$error_file" ]; then
+              repo_name=$(basename "$error_file" .txt | sed 's/gocritic-errors-//')
+              error_content=$(cat "$error_file" || echo "没有错误")
+              ERRORS="$ERRORS\n### $repo_name 错误:\n\`\`\`\n$error_content\n\`\`\`"
+            fi
+          done
+
+          # 将报告和错误设置为输出变量
+          echo "reports<<EOF" >> $GITHUB_ENV
+          echo -e "$REPORTS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+          echo "errors<<EOF" >> $GITHUB_ENV
+          echo -e "$ERRORS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+        shell: bash
+
+      - name: 输出环境变量进行调试
+        run: |
+          echo "Reports: ${{ env.reports }}"
+          echo "Errors: ${{ env.errors }}"
+        shell: bash
+
+      - name: Create or update issue with analysis results
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: 1
+          body: |
+            # Go-Critic 静态分析报告
+
+            以下是 go-critic 产生的错误：
+
+            ${{ env.errors }}
