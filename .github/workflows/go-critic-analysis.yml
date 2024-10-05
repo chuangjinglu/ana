@@ -65,7 +65,6 @@ jobs:
 
             # 返回 repos 目录
             cd ..
-          #done < ../repo.txt
           done < ../ ${{ inputs.repo_url }}
         shell: bash
 
