@@ -21,7 +21,8 @@ on:
 
 permissions:
   actions: write
-
+env:
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
 jobs:
   submit:
     runs-on: ubuntu-latest
