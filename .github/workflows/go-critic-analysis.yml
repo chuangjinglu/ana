@@ -65,7 +65,7 @@ jobs:
 
             # 返回 repos 目录
             cd ..
-          done < ../ ${{ inputs.repo_url }}
+          done < ../${{ inputs.repo_url }}
         shell: bash
 
       - name: Collect analysis reports
